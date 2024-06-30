@@ -117,35 +117,23 @@ int main(void) {
                 KeySym key = XLookupKeysym(&evt.xkey, 0);
 
                 if (key == XK_Escape) {
-                    should_quit = 1;
+                    should_quit = true;
                 }
 
                 if (key == XK_s) {
-                    if (input.down.was_pressed_prev_frame == false) {
-                        input.down.is_pressed = true;
-                        input.down.was_pressed_prev_frame = true;
-                    }
+                    input.down.is_pressed = true;
                 }
 
                 if (key == XK_w) {
-                    if (input.up.was_pressed_prev_frame == false) {
-                        input.up.is_pressed = true;
-                        input.up.was_pressed_prev_frame = true;
-                    }
+                    input.up.is_pressed = true;
                 }
 
                 if (key == XK_a) {
-                    if (input.left.was_pressed_prev_frame == false) {
-                        input.left.is_pressed = true;
-                        input.left.was_pressed_prev_frame = true;
-                    }
+                    input.left.is_pressed = true;
                 }
 
                 if (key == XK_d) {
-                    if (input.right.was_pressed_prev_frame == false) {
-                        input.right.is_pressed = true;
-                        input.right.was_pressed_prev_frame = true;
-                    }
+                    input.right.is_pressed = true;
                 }
 
             } else if (evt.type == KeyRelease) {
