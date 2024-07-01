@@ -23,6 +23,9 @@ typedef struct {
     struct BtnInfo right;
 } Input;
 
+void game_init(void);
 void game_update_and_render(Buffer *buffer, Input *input, float elapsed);
+
+void platform_test(char* arg);
 
 #endif
