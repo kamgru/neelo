@@ -53,6 +53,10 @@ uint32_t *platform_read_bmp(char *filename) {
                      (dib_header[6] << 16) | (dib_header[7] << 24);
     uint32_t height = dib_header[8] | (dib_header[9] << 8) |
                       (dib_header[10] << 16) | (dib_header[11] << 24);
+    if (height < 1) {
+        height *= -1;
+    }
+
     uint16_t bpp = dib_header[14] | (dib_header[15] << 8);
 
     uint32_t pad = (width * bpp / 8 + 3) & (~3);
@@ -63,14 +67,16 @@ uint32_t *platform_read_bmp(char *filename) {
     fclose(file);
 
     uint32_t *pixels = malloc(width * height * sizeof(uint32_t));
-    uint32_t idx = 0;
-    for (uint32_t i = 0; i < pad * height; i += 3) {
-        uint32_t pixel =
-            (0xff << 24) | (data[i + 2] << 16) | (data[i + 1] << 8) | data[i];
-        pixels[idx++] = pixel;
+    for (uint32_t row = 0; row < height; row++) {
+        for (uint32_t col = 0; col < width; col++) {
+            uint32_t idx = (height - row - 1) * pad + col * 3;
+            uint32_t pixel = (0xff << 24) | (data[idx + 2] << 16) |
+                             (data[idx + 1] << 8) | data[idx];
+            pixels[row * width + col] = pixel;
+        }
     }
-    free(data);
 
+    free(data);
     return pixels;
 }
 

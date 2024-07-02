@@ -81,7 +81,6 @@ void game_update_and_render(Buffer *buffer, Input *input, float elapsed) {
     }
 
     fill_color(buffer, CORNFLOWER_BLUE);
-    // draw_rect(buffer, LIGHT_SALMON, w, w, x, y);
     draw_spr(buffer, player_sprite, player_rect);
 }
 
