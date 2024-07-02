@@ -15,35 +15,63 @@
 
 void platform_test(char *arg) { printf("[platform]: %s\n", arg); }
 
-//supports only 24bpp bmps with no compression
-uint32_t* platform_read_bmp(char* filename) {
-	FILE* file = fopen(filename, "rb");
-	if (file == NULL) {
-		printf("failed to open file %s\n", filename);
-		return NULL;
-	}
+// supports only 24bpp bmps with no compression and size power of 2
+// any other will crash the game ;)
+uint32_t *platform_read_bmp(char *filename) {
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        printf("failed to open file %s\n", filename);
+        fclose(file);
+        return NULL;
+    }
 
-	uint8_t bmp_file_header[14];
-	fread(bmp_file_header, 14, 1, file);
-	if (header[0] != 0x42 || header[1] != 0x4d){
-		printf("not a valid bmp file\n");
-		return NULL;
-	}
+    uint8_t bmp_file_header[14];
+    fread(bmp_file_header, 14, 1, file);
+    if (bmp_file_header[0] != 0x42 || bmp_file_header[1] != 0x4d) {
+        printf("not a valid bmp file\n");
+        fclose(file);
+        return NULL;
+    }
 
-	uint32_t dib_header_size;
-	fread(dib_header_size, 4, 1, file);
-	if (dib_header_size != 40){
-		printf("unsupported bmp version\n");
-		return NULL;
-	}
+    uint32_t data_offset = bmp_file_header[10] | (bmp_file_header[11] << 8) |
+                           (bmp_file_header[12] << 16) |
+                           (bmp_file_header[13] << 24);
 
-	fseek(file, 14, SEEK_SET);
-	uint8_t dib_header[40];
-	fread(dib_header, 1, 40, file);
+    uint32_t dib_header_size;
+    fread(&dib_header_size, 4, 1, file);
+    if (dib_header_size != 40) {
+        printf("unsupported bmp version\n");
+        fclose(file);
+        return NULL;
+    }
 
-	uint32_t width = dib_header[4] | (dib_header[5] << 8) | (dib_header[6] << 16) | (dib_header[7] << 24);
-	uint32_t height = dib_header[8] | (dib_header[9] << 8) | (dib_header[10] << 16) | (dib_header[11] << 24);
+    fseek(file, 14, SEEK_SET);
+    uint8_t dib_header[40];
+    fread(dib_header, 1, 40, file);
 
+    uint32_t width = dib_header[4] | (dib_header[5] << 8) |
+                     (dib_header[6] << 16) | (dib_header[7] << 24);
+    uint32_t height = dib_header[8] | (dib_header[9] << 8) |
+                      (dib_header[10] << 16) | (dib_header[11] << 24);
+    uint16_t bpp = dib_header[14] | (dib_header[15] << 8);
+
+    uint32_t pad = (width * bpp / 8 + 3) & (~3);
+    uint8_t *data = malloc(pad * height);
+
+    fseek(file, data_offset, SEEK_SET);
+    fread(data, pad * height, 1, file);
+    fclose(file);
+
+    uint32_t *pixels = malloc(width * height * sizeof(uint32_t));
+    uint32_t idx = 0;
+    for (uint32_t i = 0; i < pad * height; i += 3) {
+        uint32_t pixel =
+            (0xff << 24) | (data[i + 2] << 16) | (data[i + 1] << 8) | data[i];
+        pixels[idx++] = pixel;
+    }
+    free(data);
+
+    return pixels;
 }
 
 // returns milliseconds since epoch

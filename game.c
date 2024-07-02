@@ -17,27 +17,9 @@ typedef struct Rect {
     uint16_t h;
 } Rect;
 
-uint32_t player_sprite[100] = {
-    0xFF,     0x800000FF, 0x800000FF, 0xFF,     0xFFFFFFFF, 0xFFFFFFFF,
-    0xFF,     0xFF,       0xFF,       0xFF,     0,          0,
-    0,        0,          0,          0,        0,          0,
-    0,        0,          0,          0,        0xffa07a,   0xffa07a,
-    0xffa07a, 0xffa07a,   0xffa07a,   0xffa07a, 0,          0,
-    0,        0,          0xffa07a,   0xffa07a, 0xffa07a,   0xffa07a,
-    0xffa07a, 0xffa07a,   0,          0,        0,          0,
-    0xffa07a, 0xffa07a,   0xffa07a,   0xffa07a, 0xffa07a,   0xffa07a,
-    0,        0,          0,          0,        0xffa07a,   0xffa07a,
-    0xffa07a, 0xffa07a,   0xffa07a,   0xffa07a, 0,          0,
-    0,        0,          0xffa07a,   0xffa07a, 0xffa07a,   0xffa07a,
-    0xffa07a, 0xffa07a,   0,          0,        0,          0,
-    0xffa07a, 0xffa07a,   0xffa07a,   0xffa07a, 0xffa07a,   0xffa07a,
-    0,        0,          0,          0,        0,          0,
-    0,        0,          0,          0,        0,          0,
-    0,        0,          0,          0,        0,          0,
-    0,        0,          0,          0,
-};
+uint32_t *player_sprite;
 
-struct Rect player_rect = {20, 20, 10, 10};
+struct Rect player_rect = {20, 20, 32, 32};
 
 void fill_color(Buffer *buffer, uint32_t color) {
     for (uint32_t i = 0; i < buffer->w * buffer->h; i++) {
@@ -103,4 +85,6 @@ void game_update_and_render(Buffer *buffer, Input *input, float elapsed) {
     draw_spr(buffer, player_sprite, player_rect);
 }
 
-void game_init(void) {}
+void game_init(void) {
+    player_sprite = platform_read_bmp("assets/blue-ball.bmp");
+}

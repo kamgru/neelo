@@ -27,5 +27,6 @@ void game_init(void);
 void game_update_and_render(Buffer *buffer, Input *input, float elapsed);
 
 void platform_test(char* arg);
+uint32_t *platform_read_bmp(char *filename);
 
 #endif
