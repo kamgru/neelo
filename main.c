@@ -1,6 +1,8 @@
 #include "game.h"
+#include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xrandr.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -9,8 +11,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#define SCREEN_W 640
-#define SCREEN_H 480
+#define SCREEN_W 2560
+#define SCREEN_H 1440
 #define FPS 60
 
 void platform_test(char *arg) { printf("[platform]: %s\n", arg); }
@@ -100,12 +102,6 @@ int main(void) {
         exit(1);
     }
 
-    uint32_t *image = malloc(SCREEN_W * SCREEN_H * sizeof(uint32_t));
-    Buffer buffer;
-    buffer.w = SCREEN_W;
-    buffer.h = SCREEN_H;
-    buffer.data = image;
-
     screen_num = DefaultScreen(display);
 
     unsigned long border_color = BlackPixel(display, screen_num);
@@ -114,18 +110,47 @@ int main(void) {
     window = XCreateSimpleWindow(display, RootWindow(display, screen_num),
                                  10, // initial x position
                                  10, // initial y position
-                                 SCREEN_W, SCREEN_H,
+                                 1, 1,
                                  1, // border width
                                  border_color, background_color);
+
+    XRRScreenSize *xrrs;
+    int num_sizes;
+    xrrs = XRRSizes(display, 0, &num_sizes);
+
+    Rotation current_rotation;
+    XRRScreenConfiguration *conf =
+        XRRGetScreenInfo(display, RootWindow(display, DefaultScreen(display)));
+
+    int32_t original_size =
+        XRRConfigCurrentConfiguration(conf, &current_rotation);
+    int32_t selected_size = 6;
+
+    XRRSetScreenConfig(display, conf,
+                       RootWindow(display, DefaultScreen(display)),
+                       selected_size, current_rotation, CurrentTime);
+
+    Atom wm_state = XInternAtom(display, "_NET_WM_STATE", true);
+    Atom wm_fullscreen = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", true);
+    XChangeProperty(display, window, wm_state, XA_ATOM, 32, PropModeReplace,
+                    (uint8_t *)&wm_fullscreen, 1);
 
     gc = XCreateGC(
         display, window,
         0,     // valuemask - specifies addtional components to be set
         NULL); // values - if valuemask is set, then there we pass the data
 
+    uint32_t *image = malloc(xrrs[selected_size].width *
+                             xrrs[selected_size].height * sizeof(uint32_t));
+    Buffer buffer;
+    buffer.w = xrrs[selected_size].width;
+    buffer.h = xrrs[selected_size].height;
+    buffer.data = image;
+
     XImage *ximg = XCreateImage(display, DefaultVisual(display, screen_num),
                                 DefaultDepth(display, screen_num), ZPixmap, 0,
-                                (char *)image, SCREEN_W, SCREEN_H, 32, 0);
+                                (char *)image, xrrs[selected_size].width,
+                                xrrs[selected_size].height, 32, 0);
 
     XStoreName(display, window, "My X11 Window!");
 
@@ -211,9 +236,15 @@ int main(void) {
         }
     }
 
+    XRRSetScreenConfig(display, conf,
+                       RootWindow(display, DefaultScreen(display)),
+                       original_size, current_rotation, CurrentTime);
+    XRRFreeScreenConfigInfo(conf);
     free(image);
     ximg->data = NULL;
     XDestroyImage(ximg);
+    XFreeGC(display, gc);
+    XDestroyWindow(display, window);
     XCloseDisplay(display);
     return 0;
 }

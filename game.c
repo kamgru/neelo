@@ -8,7 +8,6 @@
 
 const uint32_t speed = 200;
 int32_t x = 0, y = 0;
-uint8_t w = 20;
 
 typedef struct Rect {
     uint16_t x;
@@ -54,8 +53,8 @@ void game_update_and_render(Buffer *buffer, Input *input, float elapsed) {
 
     if (input->down.is_pressed) {
         y += speed * elapsed;
-        if ((uint32_t)y > buffer->h - w) {
-            y = buffer->h - w;
+        if ((uint32_t)y > buffer->h - player_rect.h) {
+            y = buffer->h - player_rect.h;
         }
     }
 
@@ -75,8 +74,8 @@ void game_update_and_render(Buffer *buffer, Input *input, float elapsed) {
 
     if (input->right.is_pressed) {
         x += speed * elapsed;
-        if ((uint32_t)x > buffer->w - w) {
-            x = buffer->w - w;
+        if ((uint32_t)x > buffer->w - player_rect.w) {
+            x = buffer->w - player_rect.w;
         }
     }
 
