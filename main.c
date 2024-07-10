@@ -15,6 +15,69 @@
 #define SCREEN_H 1440
 #define FPS 60
 
+Display *display;
+Window window;
+XEvent evt;
+GC gc;
+int screen_num;
+XRRScreenConfiguration *screen_configuration;
+Rotation current_rotation;
+
+XImage *ximg;
+uint32_t *pixels;
+Buffer buffer;
+
+ScreenResolution *platform_get_screen_resolutions(uint32_t *num) {
+    int32_t num_sizes;
+    XRRScreenSize *xrrs = XRRSizes(display, 0, &num_sizes);
+    *num = num_sizes;
+    ScreenResolution *res = malloc(sizeof(ScreenResolution) * num_sizes);
+    for (uint32_t i = 0; i < (*num); i++) {
+        res[i].w = xrrs[i].width;
+        res[i].h = xrrs[i].height;
+    }
+    return res;
+}
+
+void platform_set_screen_resolution(ScreenResolution res, bool fullscreen) {
+    int32_t num_sizes;
+    XRRScreenSize *xrrs = XRRSizes(display, 0, &num_sizes);
+    int32_t selected_size = -1;
+    for (int32_t i = 0; i < num_sizes; i++) {
+        if ((uint32_t)xrrs[i].width == res.w &&
+            (uint32_t)xrrs[i].height == res.h) {
+            selected_size = i;
+            break;
+        }
+    }
+
+    XRRSetScreenConfig(display, screen_configuration,
+                       RootWindow(display, DefaultScreen(display)),
+                       selected_size, current_rotation, CurrentTime);
+
+    XMoveResizeWindow(display, window, 10, 10, xrrs[selected_size].width,
+                      xrrs[selected_size].height);
+
+    if (fullscreen) {
+        Atom wm_state = XInternAtom(display, "_NET_WM_STATE", true);
+        Atom wm_fullscreen =
+            XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", true);
+        XChangeProperty(display, window, wm_state, XA_ATOM, 32, PropModeReplace,
+                        (uint8_t *)&wm_fullscreen, 1);
+    }
+
+    pixels = malloc(xrrs[selected_size].width * xrrs[selected_size].height *
+                    sizeof(uint32_t));
+    buffer.w = xrrs[selected_size].width;
+    buffer.h = xrrs[selected_size].height;
+    buffer.data = pixels;
+
+    ximg = XCreateImage(display, DefaultVisual(display, screen_num),
+                        DefaultDepth(display, screen_num), ZPixmap, 0,
+                        (char *)pixels, xrrs[selected_size].width,
+                        xrrs[selected_size].height, 32, 0);
+}
+
 void platform_test(char *arg) { printf("[platform]: %s\n", arg); }
 
 // supports only 24bpp bmps with no compression and size power of 2
@@ -90,11 +153,6 @@ uint64_t get_time(void) {
 }
 
 int main(void) {
-    Display *display;
-    Window window;
-    XEvent evt;
-    GC gc;
-    int screen_num;
 
     display = XOpenDisplay(NULL);
     if (display == NULL) {
@@ -114,43 +172,16 @@ int main(void) {
                                  1, // border width
                                  border_color, background_color);
 
-    XRRScreenSize *xrrs;
-    int num_sizes;
-    xrrs = XRRSizes(display, 0, &num_sizes);
-
-    Rotation current_rotation;
-    XRRScreenConfiguration *conf =
+    screen_configuration =
         XRRGetScreenInfo(display, RootWindow(display, DefaultScreen(display)));
 
     int32_t original_size =
-        XRRConfigCurrentConfiguration(conf, &current_rotation);
-    int32_t selected_size = 6;
-
-    XRRSetScreenConfig(display, conf,
-                       RootWindow(display, DefaultScreen(display)),
-                       selected_size, current_rotation, CurrentTime);
-
-    Atom wm_state = XInternAtom(display, "_NET_WM_STATE", true);
-    Atom wm_fullscreen = XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", true);
-    XChangeProperty(display, window, wm_state, XA_ATOM, 32, PropModeReplace,
-                    (uint8_t *)&wm_fullscreen, 1);
+        XRRConfigCurrentConfiguration(screen_configuration, &current_rotation);
 
     gc = XCreateGC(
         display, window,
         0,     // valuemask - specifies addtional components to be set
         NULL); // values - if valuemask is set, then there we pass the data
-
-    uint32_t *image = malloc(xrrs[selected_size].width *
-                             xrrs[selected_size].height * sizeof(uint32_t));
-    Buffer buffer;
-    buffer.w = xrrs[selected_size].width;
-    buffer.h = xrrs[selected_size].height;
-    buffer.data = image;
-
-    XImage *ximg = XCreateImage(display, DefaultVisual(display, screen_num),
-                                DefaultDepth(display, screen_num), ZPixmap, 0,
-                                (char *)image, xrrs[selected_size].width,
-                                xrrs[selected_size].height, 32, 0);
 
     XStoreName(display, window, "My X11 Window!");
 
@@ -236,11 +267,11 @@ int main(void) {
         }
     }
 
-    XRRSetScreenConfig(display, conf,
+    XRRSetScreenConfig(display, screen_configuration,
                        RootWindow(display, DefaultScreen(display)),
                        original_size, current_rotation, CurrentTime);
-    XRRFreeScreenConfigInfo(conf);
-    free(image);
+    XRRFreeScreenConfigInfo(screen_configuration);
+    free(pixels);
     ximg->data = NULL;
     XDestroyImage(ximg);
     XFreeGC(display, gc);

@@ -84,5 +84,13 @@ void game_update_and_render(Buffer *buffer, Input *input, float elapsed) {
 }
 
 void game_init(void) {
+    uint32_t num_res;
+    ScreenResolution *res = platform_get_screen_resolutions(&num_res);
+    for (uint32_t i = 0; i < num_res; i++) {
+        printf("[%d]: %d x %d\n", i + 1, res[i].w, res[i].h);
+    }
+
+    platform_set_screen_resolution(res[9], true);
+
     player_sprite = platform_read_bmp("assets/blue-ball.bmp");
 }

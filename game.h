@@ -23,10 +23,17 @@ typedef struct {
     struct BtnInfo right;
 } Input;
 
+typedef struct {
+	uint32_t w;
+	uint32_t h;
+} ScreenResolution;
+
 void game_init(void);
 void game_update_and_render(Buffer *buffer, Input *input, float elapsed);
 
 void platform_test(char* arg);
 uint32_t *platform_read_bmp(char *filename);
+ScreenResolution* platform_get_screen_resolutions(uint32_t* num);
+void platform_set_screen_resolution(ScreenResolution res, bool fullscreen);
 
 #endif
